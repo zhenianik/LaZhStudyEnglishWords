@@ -10,38 +10,61 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
-import java.awt.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class Bot extends TelegramLongPollingBot {
 
+    private static Connection myCon = null;
+    private boolean connectionStatus = SetConnection();
+
     public static void main(String[] args) throws SQLException {
 
-        String url = "jdbc:mysql://mysql-srv30737.hts.ru/srv30737_english?useUnicode=true&serverTimezone=UTC";
-        String user = "srv30737_english";
-        String password = "74nik74";
+        ApiContextInitializer.init();
+        TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
         try {
-            Connection myCon = DriverManager.getConnection(url, user, password);
-            Statement myStmt = myCon.createStatement();
-            String sql = "select * from srv30737_english.words";
-            ResultSet rs = myStmt.executeQuery(sql);
-            while (rs.next()) {
-                System.out.println(rs.getString("word"));
+            telegramBotsApi.registerBot(new Bot());
+        } catch (TelegramApiRequestException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean SetConnection() {
+        Properties props = new Properties();
+        try {
+            FileInputStream in = new FileInputStream("C:/java/db.properties");
+            props.load(in);
+            in.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String driver = props.getProperty("jdbc.driver");
+        if (driver != null) {
+            try {
+                Class.forName(driver) ;
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
+        }
+
+        String url = props.getProperty("jdbc.url");
+        String username = props.getProperty("jdbc.username");
+        String password = props.getProperty("jdbc.password");
+
+        try {
+            myCon = DriverManager.getConnection(url, username, password);
+            return true;
         } catch (SQLException throwables) {
             //System.out.println("don't work");
             throwables.printStackTrace();
+            return false;
         }
-
-//        ApiContextInitializer.init();
-//        TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
-//        try {
-//            telegramBotsApi.registerBot(new Bot());
-//        } catch (TelegramApiRequestException e) {
-//            e.printStackTrace();
-//        }
     }
 
     public void onUpdateReceived(Update update) {
@@ -49,11 +72,13 @@ public class Bot extends TelegramLongPollingBot {
         if (message != null && message.hasText()) {
             String text = message.getText();
             if ("/help".equals(text)) {
-                sendMsg(message, "Чем я могу помочь");
+                sendMsg(message, "Чем я могу помочь", true);
             } else if ("/setting".equals(text)) {
-                sendMsg(message, "Что будем настраивать");
+                sendMsg(message, "Что будем настраивать", true);
+            } else if ("/video".equals(text)) {
+                sendMsg(message, "https://youtu.be/m-5RSSZg0Os", false);
             } else {
-                sendMsg(message, "А не пошёл бы ты в жопу?!");
+                sendMsg(message, "А не пошёл бы ты в жопу?!", true);
             }
         }
     }
@@ -70,14 +95,15 @@ public class Bot extends TelegramLongPollingBot {
 
         keyboarfirstrow.add(new KeyboardButton("/help"));
         keyboarfirstrow.add(new KeyboardButton("/setting"));
+        keyboarfirstrow.add(new KeyboardButton("/video"));
 
         keyboardRowList.add(keyboarfirstrow);
         replyKeyboardMarkup.setKeyboard(keyboardRowList);
     }
 
-    public void sendMsg(Message message, String text) {
+    public void sendMsg(Message message, String text, boolean enableMarkdown) {
         SendMessage sendMessage = new SendMessage();
-        sendMessage.enableMarkdown(true);
+        sendMessage.enableMarkdown(enableMarkdown);
         sendMessage.setChatId(message.getChatId().toString());
         sendMessage.setReplyToMessageId(message.getMessageId());
         sendMessage.setText(text);
@@ -97,5 +123,20 @@ public class Bot extends TelegramLongPollingBot {
 
     public String getBotToken() {
         return "1175991949:AAFgsPgTp5yKCFV0J1grvL8E-mVNN4vYbWc";
+    }
+
+    public String getRequest() {
+        Statement myStmt = null;
+        try {
+            myStmt = myCon.createStatement();
+            String sql = "select * from srv30737_english.words";
+            ResultSet rs = myStmt.executeQuery(sql);
+            while (rs.next()) {
+                System.out.println(rs.getString("word"));
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return "";
     }
 }
