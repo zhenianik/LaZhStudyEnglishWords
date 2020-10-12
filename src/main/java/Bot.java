@@ -19,6 +19,8 @@ public class Bot extends TelegramLongPollingBot {
 
     private static Connection myCon = null;
     private static String currentWord = "";
+    private static String currentTranslate = "";
+
     private static HashMap<String, String> properties = getProperties();
 
     public static void main(String[] args) throws SQLException {
@@ -77,6 +79,7 @@ public class Bot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         ArrayList<String> buttonList = new ArrayList<>();
         buttonList.add("/test");
+        buttonList.add("/last");
         buttonList.add("/video");
 
         Message message = update.getMessage();
@@ -84,40 +87,79 @@ public class Bot extends TelegramLongPollingBot {
             String text = message.getText();
             if ("/test".equals(text)) {
                 ArrayList<String> answer = getRequest(getRandomWord());
-                sendMsg(message, answer.toString(), true, buttonList);
+                if (answer.size() != 0) {
+                    String resultStr = "";
+                    for (String str : answer) {
+                        String arr[] = str.split(";");
+                        resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
+                    }
+                    sendMsg(message, resultStr, false, buttonList);
+                }
+            } else if ("/last".equals(text)) {
+                ArrayList<String> answer = getRequest(getLastWordWord());
+                if (answer.size() != 0) {
+                    String resultStr = "";
+                    for (String str : answer) {
+                        String arr[] = str.split(";");
+                        resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
+                    }
+                    sendMsg(message, resultStr, false, buttonList);
+                }
             } else if ("/video".equals(text)) {
                 ArrayList<String> answer = getRequest(getRandomVideo());
-                for (String str : answer) {
-                    String w[] = str.split(";");
-                    sendMsg(message, w.toString(), false, buttonList);
+                if (answer.size() != 0) {
+                    String video = "";
+                    String resultStr = "";
+                    for (String str : answer) {
+                        String arr[] = str.split(";");
+                        resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
+                        video = arr[arr.length - 1];
+                    }
+                    sendMsg(message, resultStr, false, buttonList);
+                    sendMsg(message, video, false, buttonList);
                 }
             } else if ("/yes".equals(text)) {
                 boolean answer = getRequestInsert(addNewWord(currentWord, message.getFrom().getUserName()));
-                if (answer) sendMsg(message, "Слово успешно добавлено", false, buttonList);
+                if (answer && currentTranslate!="") sendMsg(message, "Слово успешно добавлено", false, buttonList);
                 else sendMsg(message, "Что-то пошло не так, слово не добавлено.", false, buttonList);
             } else if ("/no".equals(text)) {
                 sendMsg(message, "Хорошо, не будем добавлять.", false, buttonList);
             } else {
                 // если ввели слово (не команда), тогда проверим его наличие в бд и выведем соотв.результат
-                ArrayList<String> answer = getRequest(chekWord(text));
-                if (answer.size() != 0) {
+                if (getLang(text) == "en") {
+                    ArrayList<String> answer = getRequest(checkWord(text));
+                    if (answer.size() != 0) {
+                        for (String str : answer) {
+                            String arr[] = str.split(";");
+                            String mystr = getTranslatedString(arr);
+                            sendMsg(message, mystr, true, buttonList);
+                        }
+                    } else {
+                        ArrayList<String> buttonListAdd = new ArrayList<>();
+                        buttonListAdd.add("/yes");
+                        buttonListAdd.add("/no");
+
+                        Translator translator = new Translator();
+                        String translate = "";
+                        try {
+                            translate = Translator.translate("en","ru",text);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        sendMsg(message, "Cлова \""+text+"\" с переводом \""+currentTranslate+"\" нет в словаре! Добавить?", true, buttonListAdd);
+                        currentWord = text;
+                    }
+                }
+                if (getLang(text) == "ru") {
+                    ArrayList<String> answer = getRequest(checkTranslate(text));
+                    String mystr = "";
                     for (String str : answer) {
                         String arr[] = str.split(";");
-                        String mystr = "перевод: ";
-                        for (int i = 1; i < arr.length - 1; i++) {
-                            String s = arr[i + 1].equals("") ? "" : ", ";
-                            if (!arr[i].equals("")) mystr = mystr + arr[i] + s;
-                        }
-                        sendMsg(message, mystr, true, buttonList);
+                        mystr = mystr + text+" - "+arr[0]+System.lineSeparator();
                     }
-                } else {
-                    ArrayList<String> buttonListAdd = new ArrayList<>();
-                    buttonListAdd.add("/yes");
-                    buttonListAdd.add("/no");
-                    sendMsg(message, "Такого слова нет в словаре! Добавить?", true, buttonListAdd);
-                    currentWord = text;
+                    sendMsg(message, mystr, true, buttonList);
                 }
-
             }
         }
     }
@@ -164,6 +206,29 @@ public class Bot extends TelegramLongPollingBot {
         return properties.get("telegramBotToken");
     }
 
+    String getLang(String s) {
+        char ch = s.trim().charAt(0);
+        if ((ch >= 0x0041 && ch <= 0x005A) || (ch >= 0x0061 && ch <= 0x007A)) {
+            return "en";
+        }
+        if ((ch >= 0x0410 && ch <= 0x044F) || ch == 0x0401 || ch == 0x0451) {
+            return "ru";
+        }
+        throw new IllegalArgumentException("строка начинается с символа неизвестного языка");
+    }
+
+    public static String getTranslatedString(String arr[]) {
+        String mystr = "";
+        if (arr.length != 0) {
+            mystr = mystr + arr[0] + " - ";
+            for (int i = 1; i < arr.length - 1; i++) {
+                String s = arr[i + 1].equals("") ? "" : ", ";
+                if (!arr[i].equals("")) mystr = mystr + arr[i] + s;
+            }
+        }
+        return mystr;
+    }
+
     public static ArrayList<String> getRequest(String sqlText) {
         ArrayList<String> result = new ArrayList<String>();
         Statement myStmt = null;
@@ -195,15 +260,27 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public static String getRandomVideo() {
-        return "SELECT DISTINCT word, translate1, translate2, translate3, translate4, context from words order by RAND() LIMIT 1";
+        return "SELECT tb1.word, tb1.translate1, tb1.translate2, tb1.translate3, tb1.translate4, tb1.context from words AS tb1 " +
+                "INNER JOIN ( SELECT DISTINCT word, translate1, translate2, translate3, translate4, context from words " +
+                "where context LIKE '%http%'  order by RAND() LIMIT 1) AS tb2 " +
+                "ON tb1.context = tb2.context";
     }
 
     public static String getRandomWord() {
-        return "SELECT word, translate1, translate2, translate3, translate4, context from words order by RAND() LIMIT 10";
+        return "SELECT word, translate1, translate2, translate3, translate4, context from words order by RAND() LIMIT 30";
     }
 
-    public static String chekWord(String text) {
+    public static String getLastWordWord() {
+        return "SELECT word, translate1, translate2, translate3, translate4, context from words ORDER BY `id_word` DESC LIMIT 15";
+    }
+    public static String checkWord(String text) {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words where word = '" + text + "'";
+    }
+
+    public static String checkTranslate(String text) {
+        return "SELECT word, translate1, translate2, translate3, translate4, context from words " +
+                "where translate1 = '" + text + "'" + " OR translate2 = '" + text + "'"+ " OR translate3 = '" + text + "'"+ " OR translate4 = '" + text + "'";
+
     }
 
     public static String addNewWord(String text, String context) {
