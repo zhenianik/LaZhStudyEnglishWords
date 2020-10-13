@@ -23,7 +23,7 @@ public class Bot extends TelegramLongPollingBot {
 
     private static HashMap<String, String> properties = getProperties();
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) {
 
         SetConnection(properties.get("url"), properties.get("username"), properties.get("password"));
 
@@ -119,11 +119,13 @@ public class Bot extends TelegramLongPollingBot {
                     sendMsg(message, video, false, buttonList);
                 }
             } else if ("/yes".equals(text)) {
-                boolean answer = getRequestInsert(addNewWord(currentWord, message.getFrom().getUserName()));
-                if (answer && currentTranslate!="") sendMsg(message, "Слово успешно добавлено", false, buttonList);
+                boolean answer = getRequestInsert(addNewWord(currentWord, currentTranslate, message.getFrom().getUserName()));
+                if (answer && !currentWord.equals("") && !currentTranslate.equals("")) sendMsg(message, "Слово успешно добавлено", false, buttonList);
                 else sendMsg(message, "Что-то пошло не так, слово не добавлено.", false, buttonList);
             } else if ("/no".equals(text)) {
                 sendMsg(message, "Хорошо, не будем добавлять.", false, buttonList);
+                currentWord = "";
+                currentTranslate = "";
             } else {
                 // если ввели слово (не команда), тогда проверим его наличие в бд и выведем соотв.результат
                 if (getLang(text) == "en") {
@@ -139,16 +141,16 @@ public class Bot extends TelegramLongPollingBot {
                         buttonListAdd.add("/yes");
                         buttonListAdd.add("/no");
 
-                        Translator translator = new Translator();
                         String translate = "";
                         try {
-                            translate = Translator.translate("en","ru",text);
+                            translate = Translator.translate(text);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
 
-                        sendMsg(message, "Cлова \""+text+"\" с переводом \""+currentTranslate+"\" нет в словаре! Добавить?", true, buttonListAdd);
+                        sendMsg(message, "Cлова \""+text+"\" с переводом \""+translate+"\" нет в словаре! Добавить?", true, buttonListAdd);
                         currentWord = text;
+                        currentTranslate = translate;
                     }
                 }
                 if (getLang(text) == "ru") {
@@ -283,9 +285,9 @@ public class Bot extends TelegramLongPollingBot {
 
     }
 
-    public static String addNewWord(String text, String context) {
+    public static String addNewWord(String text, String translate1, String context) {
         return "INSERT INTO `words` (`id_word`, `word`, `translate1`, `translate2`, `translate3`, `translate4`, `context`) " +
-                "VALUES (NULL, '" + text + "', '', '', '', '', '" + context + "')";
+                "VALUES (NULL, '" + text + "', '" + translate1 + "', '', '', '', '" + context + "')";
     }
 
 }

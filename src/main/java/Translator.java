@@ -1,71 +1,44 @@
+
 import java.io.BufferedReader;
-import java.io.OutputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Translator {
-    // TODO: If you have your own Premium account credentials, put them down here:
-    private static final String CLIENT_ID = "FREE_TRIAL_ACCOUNT";
-    private static final String CLIENT_SECRET = "PUBLIC_SECRET";
-    private static final String ENDPOINT = "http://api.whatsmate.net/v1/translation/translate";
 
-    /**
-     * Entry Point
-     */
     public static void main(String[] args) throws Exception {
-        // TODO: Specify your translation requirements here:
-        String fromLang = "en";
-        String toLang = "ru";
-        String text = "Let's have some fun!";
 
-        Translator.translate(fromLang, toLang, text);
     }
 
+    static String sourceLang = "en";
+    static String targetLang = "ru";
 
-    public static String translate(String fromLang, String toLang, String text) throws Exception {
-        // TODO: Should have used a 3rd party library to make a JSON string from an object
-        String jsonPayload = new StringBuilder()
-                .append("{")
-                .append("\"fromLang\":\"")
-                .append(fromLang)
-                .append("\",")
-                .append("\"toLang\":\"")
-                .append(toLang)
-                .append("\",")
-                .append("\"text\":\"")
-                .append(text)
-                .append("\"")
-                .append("}")
-                .toString();
+    public static String translate(String msg) throws Exception {
 
-        URL url = new URL(ENDPOINT);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("X-WM-CLIENT-ID", CLIENT_ID);
-        conn.setRequestProperty("X-WM-CLIENT-SECRET", CLIENT_SECRET);
-        conn.setRequestProperty("Content-Type", "application/json");
+        msg = URLEncoder.encode(msg, "UTF-8");
+        URL url = new URL("http://translate.googleapis.com/translate_a/single?client=gtx&sl=" + sourceLang + "&tl="
+                + targetLang + "&dt=t&q=" + msg + "&ie=UTF-8&oe=UTF-8");
 
-        OutputStream os = conn.getOutputStream();
-        os.write(jsonPayload.getBytes());
-        os.flush();
-        os.close();
+        URLConnection uc = url.openConnection();
+        uc.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-        int statusCode = conn.getResponseCode();
-        System.out.println("Status Code: " + statusCode);
-        BufferedReader br = new BufferedReader(new InputStreamReader(
-                (statusCode == 200) ? conn.getInputStream() : conn.getErrorStream()
-        ));
-        String output;
+        BufferedReader in = new BufferedReader(new InputStreamReader(uc.getInputStream(), "UTF-8"));
+        String inputLine;
         String result = "";
-        while ((output = br.readLine()) != null) {
-            //System.out.println(output);
-            result = result + output + ", ";
+
+        if ((inputLine = in.readLine()) != null) {
+
+            Pattern p = Pattern.compile("\"([^\"]*)\"");
+            Matcher m = p.matcher(inputLine);
+            while (m.find()) {
+                result = m.group(1);
+                break;
+            }
         }
-        result = result.substring(0, result.length() - 2);
-        conn.disconnect();
+        in.close();
         return result;
     }
-
 }
