@@ -155,12 +155,14 @@ public class Bot extends TelegramLongPollingBot {
                 }
                 if (getLang(text) == "ru") {
                     ArrayList<String> answer = getRequest(checkTranslate(text));
-                    String mystr = "";
-                    for (String str : answer) {
-                        String arr[] = str.split(";");
-                        mystr = mystr + text+" - "+arr[0]+System.lineSeparator();
+                    if (answer.size() != 0) {
+                        String mystr = "";
+                        for (String str : answer) {
+                            String arr[] = str.split(";");
+                            mystr = mystr + text+" - "+arr[0]+System.lineSeparator();
+                        }
+                        sendMsg(message, mystr, true, buttonList);
                     }
-                    sendMsg(message, mystr, true, buttonList);
                 }
             }
         }
@@ -273,7 +275,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public static String getLastWordWord() {
-        return "SELECT word, translate1, translate2, translate3, translate4, context from words ORDER BY `id_word` DESC LIMIT 15";
+        return "SELECT word, translate1, translate2, translate3, translate4, context from words ORDER BY `id_word` DESC LIMIT 30";
     }
     public static String checkWord(String text) {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words where word = '" + text + "'";
