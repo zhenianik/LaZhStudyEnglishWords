@@ -74,83 +74,101 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
+    public static String getTranslatedString(String arr[]) {
+        String mystr = "";
+        if (arr.length != 0) {
+            mystr = mystr + arr[0] + " - ";
+            for (int i = 1; i < arr.length - 1; i++) {
+                String s = arr[i + 1].equals("") ? "" : ", ";
+                if (!arr[i].equals("")) mystr = mystr + arr[i] + s;
+            }
+            if (arr[arr.length].contains("http")) {
+                mystr = mystr + System.lineSeparator() + arr[arr.length];
+            } else mystr = mystr + " (" + arr[arr.length] + ")";
+
+        }
+        return mystr;
+    }
+
+    public String getResultStr(ArrayList<String> answer) {
+        String resultStr = "";
+        if (answer.size() != 0) {
+            for (String str : answer) {
+                String arr[] = str.split(";");
+                resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
+            }
+        }
+        return resultStr;
+    }
+
+    public String addNewWordResult(String username, boolean add) {
+        String resultStr = "";
+        if (add) {
+            boolean answer = getRequestInsert(addNewWord(currentWord, currentTranslate, username));
+            if (answer && !currentWord.equals("") && !currentTranslate.equals("")) {
+                return "Слово успешно добавлено";
+            } else {
+                return "Что-то пошло не так, слово не добавлено.";
+            }
+        } else {
+            currentWord = "";
+            currentTranslate = "";
+            return "Хорошо, не будем добавлять.";
+        }
+    }
+
+    public String checkWordInBase(String text) {
+        TreeMap<Boolean, String> res = new TreeMap<>();
+        res.put(true, "aa");
+
+        ArrayList<String> answer = getRequest(checkWord(text));
+        String mystr = "";
+        if (answer.size() != 0) {
+            for (String str : answer) {
+                String arr[] = str.split(";");
+                mystr = getTranslatedString(arr);
+            }
+            return mystr;
+        } else {
+            String translate = "";
+            try {
+                translate = Translator.translate(text);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            currentWord = text;
+            currentTranslate = translate;
+            return "Cлова \"" + text + "\" с переводом \"" + translate + "\" нет в словаре! Добавить?";
+        }
+    }
+
     public void onUpdateReceived(Update update) {
         ArrayList<String> buttonList = new ArrayList<>();
         buttonList.add("/test");
         buttonList.add("/last");
         buttonList.add("/video");
 
+        ArrayList<String> buttonListAdd = new ArrayList<>();
+        buttonListAdd.add("/yes");
+        buttonListAdd.add("/no");
+
         Message message = update.getMessage();
         if (message != null && message.hasText()) {
             String text = message.getText();
             if ("/test".equals(text)) {
-                ArrayList<String> answer = getRequest(getRandomWord());
-                if (answer.size() != 0) {
-                    String resultStr = "";
-                    for (String str : answer) {
-                        String arr[] = str.split(";");
-                        resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
-                    }
-                    sendMsg(message, resultStr, false, buttonList);
-                }
+                sendMsg(message, getResultStr(getRequest(getRandomWord())), false, buttonList);
             } else if ("/last".equals(text)) {
-                ArrayList<String> answer = getRequest(getLastWordWord());
-                if (answer.size() != 0) {
-                    String resultStr = "";
-                    for (String str : answer) {
-                        String arr[] = str.split(";");
-                        resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
-                    }
-                    sendMsg(message, resultStr, false, buttonList);
-                }
+                sendMsg(message, getResultStr(getRequest(getLastWordWord())), false, buttonList);
             } else if ("/video".equals(text)) {
-                ArrayList<String> answer = getRequest(getRandomVideo());
-                if (answer.size() != 0) {
-                    String video = "";
-                    String resultStr = "";
-                    for (String str : answer) {
-                        String arr[] = str.split(";");
-                        resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
-                        video = arr[arr.length - 1];
-                    }
-                    sendMsg(message, resultStr, false, buttonList);
-                    sendMsg(message, video, false, buttonList);
-                }
+                sendMsg(message, getResultStr(getRequest(getRandomVideo())), false, buttonList);
             } else if ("/yes".equals(text)) {
-                boolean answer = getRequestInsert(addNewWord(currentWord, currentTranslate, message.getFrom().getUserName()));
-                if (answer && !currentWord.equals("") && !currentTranslate.equals(""))
-                    sendMsg(message, "Слово успешно добавлено", false, buttonList);
-                else sendMsg(message, "Что-то пошло не так, слово не добавлено.", false, buttonList);
+                sendMsg(message, addNewWordResult(message.getFrom().getUserName(), true), false, buttonList);
             } else if ("/no".equals(text)) {
-                sendMsg(message, "Хорошо, не будем добавлять.", false, buttonList);
-                currentWord = "";
-                currentTranslate = "";
+                sendMsg(message, addNewWordResult(message.getFrom().getUserName(), false), false, buttonList);
             } else {
                 // если ввели слово (не команда), тогда проверим его наличие в бд и выведем соотв.результат
                 if (getLang(text) == "en") {
-                    ArrayList<String> answer = getRequest(checkWord(text));
-                    if (answer.size() != 0) {
-                        for (String str : answer) {
-                            String arr[] = str.split(";");
-                            String mystr = getTranslatedString(arr);
-                            sendMsg(message, mystr, true, buttonList);
-                        }
-                    } else {
-                        ArrayList<String> buttonListAdd = new ArrayList<>();
-                        buttonListAdd.add("/yes");
-                        buttonListAdd.add("/no");
-
-                        String translate = "";
-                        try {
-                            translate = Translator.translate(text);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-
-                        sendMsg(message, "Cлова \"" + text + "\" с переводом \"" + translate + "\" нет в словаре! Добавить?", true, buttonListAdd);
-                        currentWord = text;
-                        currentTranslate = translate;
-                    }
+                    sendMsg(message, checkWordInBase(text), true, buttonList);
                 }
                 if (getLang(text) == "ru") {
                     ArrayList<String> answer = getRequest(checkTranslate(text));
@@ -198,7 +216,6 @@ public class Bot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-
     }
 
     public String getBotUsername() {
@@ -218,18 +235,6 @@ public class Bot extends TelegramLongPollingBot {
             return "ru";
         }
         throw new IllegalArgumentException("строка начинается с символа неизвестного языка");
-    }
-
-    public static String getTranslatedString(String arr[]) {
-        String mystr = "";
-        if (arr.length != 0) {
-            mystr = mystr + arr[0] + " - ";
-            for (int i = 1; i < arr.length - 1; i++) {
-                String s = arr[i + 1].equals("") ? "" : ", ";
-                if (!arr[i].equals("")) mystr = mystr + arr[i] + s;
-            }
-        }
-        return mystr;
     }
 
     public static ArrayList<String> getRequest(String sqlText) {
