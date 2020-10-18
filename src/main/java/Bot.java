@@ -40,10 +40,8 @@ public class Bot extends TelegramLongPollingBot {
         HashMap<String, String> properties = new HashMap<>();
 
         Properties props = new Properties();
-        try {
-            FileInputStream in = new FileInputStream("C:/java/db.properties");
+        try (FileInputStream in = new FileInputStream("C:/java/db.properties")) {
             props.load(in);
-            in.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -120,7 +118,8 @@ public class Bot extends TelegramLongPollingBot {
                 }
             } else if ("/yes".equals(text)) {
                 boolean answer = getRequestInsert(addNewWord(currentWord, currentTranslate, message.getFrom().getUserName()));
-                if (answer && !currentWord.equals("") && !currentTranslate.equals("")) sendMsg(message, "Слово успешно добавлено", false, buttonList);
+                if (answer && !currentWord.equals("") && !currentTranslate.equals(""))
+                    sendMsg(message, "Слово успешно добавлено", false, buttonList);
                 else sendMsg(message, "Что-то пошло не так, слово не добавлено.", false, buttonList);
             } else if ("/no".equals(text)) {
                 sendMsg(message, "Хорошо, не будем добавлять.", false, buttonList);
@@ -148,7 +147,7 @@ public class Bot extends TelegramLongPollingBot {
                             e.printStackTrace();
                         }
 
-                        sendMsg(message, "Cлова \""+text+"\" с переводом \""+translate+"\" нет в словаре! Добавить?", true, buttonListAdd);
+                        sendMsg(message, "Cлова \"" + text + "\" с переводом \"" + translate + "\" нет в словаре! Добавить?", true, buttonListAdd);
                         currentWord = text;
                         currentTranslate = translate;
                     }
@@ -159,7 +158,7 @@ public class Bot extends TelegramLongPollingBot {
                         String mystr = "";
                         for (String str : answer) {
                             String arr[] = str.split(";");
-                            mystr = mystr + text+" - "+arr[0]+System.lineSeparator();
+                            mystr = mystr + text + " - " + arr[0] + System.lineSeparator();
                         }
                         sendMsg(message, mystr, true, buttonList);
                     }
@@ -237,7 +236,8 @@ public class Bot extends TelegramLongPollingBot {
         ArrayList<String> result = new ArrayList<String>();
         Statement myStmt = null;
         try {
-            if (myCon.isClosed()) SetConnection(properties.get("url"), properties.get("username"), properties.get("password"));
+            if (myCon.isClosed())
+                SetConnection(properties.get("url"), properties.get("username"), properties.get("password"));
             myStmt = myCon.createStatement();
             ResultSet rs = myStmt.executeQuery(sqlText);
             while (rs.next()) {
@@ -277,14 +277,14 @@ public class Bot extends TelegramLongPollingBot {
     public static String getLastWordWord() {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words ORDER BY `id_word` DESC LIMIT 30";
     }
+
     public static String checkWord(String text) {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words where word = '" + text + "'";
     }
 
     public static String checkTranslate(String text) {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words " +
-                "where translate1 = '" + text + "'" + " OR translate2 = '" + text + "'"+ " OR translate3 = '" + text + "'"+ " OR translate4 = '" + text + "'";
-
+                "where translate1 = '" + text + "'" + " OR translate2 = '" + text + "'" + " OR translate3 = '" + text + "'" + " OR translate4 = '" + text + "'";
     }
 
     public static String addNewWord(String text, String translate1, String context) {

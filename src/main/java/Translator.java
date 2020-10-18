@@ -11,12 +11,18 @@ public class Translator {
 
     public static void main(String[] args) throws Exception {
 
+        translate(null);
+
     }
 
-    static String sourceLang = "en";
-    static String targetLang = "ru";
+    private static final String sourceLang = "en";
+    private static final String targetLang = "ru";
 
     public static String translate(String msg) throws Exception {
+
+        String result = "";
+
+        if (msg == null || msg.equals("")) return "";
 
         msg = URLEncoder.encode(msg, "UTF-8");
         URL url = new URL("http://translate.googleapis.com/translate_a/single?client=gtx&sl=" + sourceLang + "&tl="
@@ -25,20 +31,21 @@ public class Translator {
         URLConnection uc = url.openConnection();
         uc.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(uc.getInputStream(), "UTF-8"));
-        String inputLine;
-        String result = "";
 
-        if ((inputLine = in.readLine()) != null) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(uc.getInputStream(), "UTF-8"))) {
+            String inputLine;
 
-            Pattern p = Pattern.compile("\"([^\"]*)\"");
-            Matcher m = p.matcher(inputLine);
-            while (m.find()) {
-                result = m.group(1);
-                break;
+            if ((inputLine = in.readLine()) != null) {
+
+                Pattern p = Pattern.compile("\"([^\"]*)\"");
+                Matcher m = p.matcher(inputLine);
+                while (m.find()) {
+                    result = m.group(1);
+                    break;
+                }
             }
+
         }
-        in.close();
         return result;
     }
 }
