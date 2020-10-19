@@ -21,11 +21,11 @@ public class Bot extends TelegramLongPollingBot {
     private static String currentWord = "";
     private static String currentTranslate = "";
 
-    private static HashMap<String, String> properties = getProperties();
+    private static Properties properties = getProperties();
 
     public static void main(String[] args) {
 
-        SetConnection(properties.get("url"), properties.get("username"), properties.get("password"));
+        setConnection(properties.getProperty("jdbc.url"), properties.getProperty("jdbc.username"), properties.getProperty("jdbc.password"));
 
         ApiContextInitializer.init();
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
@@ -36,8 +36,7 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private static HashMap<String, String> getProperties() {
-        HashMap<String, String> properties = new HashMap<>();
+    private static Properties getProperties() {
 
         Properties props = new Properties();
         try (FileInputStream in = new FileInputStream("C:/java/db.properties")) {
@@ -55,16 +54,10 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
 
-        properties.put("url", props.getProperty("jdbc.url"));
-        properties.put("username", props.getProperty("jdbc.username"));
-        properties.put("password", props.getProperty("jdbc.password"));
-        properties.put("telegramBotToken", props.getProperty("telegramBotToken"));
-        properties.put("telegramBotUsername", props.getProperty("telegramBotUsername"));
-
-        return properties;
+        return props;
     }
 
-    private static void SetConnection(String url, String username, String password) {
+    private static void setConnection(String url, String username, String password) {
 
         try {
             myCon = DriverManager.getConnection(url, username, password);
@@ -82,20 +75,20 @@ public class Bot extends TelegramLongPollingBot {
                 String s = arr[i + 1].equals("") ? "" : ", ";
                 if (!arr[i].equals("")) mystr = mystr + arr[i] + s;
             }
-            if (arr[arr.length].contains("http")) {
-                mystr = mystr + System.lineSeparator() + arr[arr.length];
-            } else mystr = mystr + " (" + arr[arr.length] + ")";
-
         }
         return mystr;
     }
 
-    public String getResultStr(ArrayList<String> answer) {
+    public String getResultStr(ArrayList<String> answer, boolean showContext) {
         String resultStr = "";
         if (answer.size() != 0) {
             for (String str : answer) {
                 String arr[] = str.split(";");
                 resultStr = resultStr + getTranslatedString(arr) + System.lineSeparator();
+            }
+            if (showContext) {
+                String arr[] = answer.get(answer.size() - 1).split(";");
+                resultStr = resultStr + System.lineSeparator() + arr[arr.length - 1];
             }
         }
         return resultStr;
@@ -117,10 +110,25 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    public String checkWordInBase(String text) {
-        TreeMap<Boolean, String> res = new TreeMap<>();
-        res.put(true, "aa");
+    public class CheckWordInBaseHold {
+        private boolean exist;
+        private String resultStr;
 
+        public CheckWordInBaseHold(String resultStr, boolean exist) {
+            this.resultStr = resultStr;
+            this.exist = exist;
+        }
+
+        public String getResultStr() {
+            return resultStr;
+        }
+
+        public boolean isExist() {
+            return exist;
+        }
+    }
+
+    public CheckWordInBaseHold checkWordInBase(String text) {
         ArrayList<String> answer = getRequest(checkWord(text));
         String mystr = "";
         if (answer.size() != 0) {
@@ -128,7 +136,7 @@ public class Bot extends TelegramLongPollingBot {
                 String arr[] = str.split(";");
                 mystr = getTranslatedString(arr);
             }
-            return mystr;
+            return new CheckWordInBaseHold(mystr, true);
         } else {
             String translate = "";
             try {
@@ -138,9 +146,22 @@ public class Bot extends TelegramLongPollingBot {
             }
             currentWord = text;
             currentTranslate = translate;
-            return "Cлова \"" + text + "\" с переводом \"" + translate + "\" нет в словаре! Добавить?";
+            return new CheckWordInBaseHold("Cлова \"" + text + "\" с переводом \"" + translate + "\" нет в словаре! Добавить?", false);
         }
     }
+
+    public String checkTranslateInBase(String text) {
+        String mystr = "";
+        ArrayList<String> answer = getRequest(checkTranslate(text));
+        if (answer.size() != 0) {
+            for (String str : answer) {
+                String arr[] = str.split(";");
+                mystr = mystr + text + " - " + arr[0] + System.lineSeparator();
+            }
+        }
+        return mystr;
+    }
+
 
     public void onUpdateReceived(Update update) {
         ArrayList<String> buttonList = new ArrayList<>();
@@ -156,11 +177,11 @@ public class Bot extends TelegramLongPollingBot {
         if (message != null && message.hasText()) {
             String text = message.getText();
             if ("/test".equals(text)) {
-                sendMsg(message, getResultStr(getRequest(getRandomWord())), false, buttonList);
+                sendMsg(message, getResultStr(getRequest(getRandomWord()), false), false, buttonList);
             } else if ("/last".equals(text)) {
-                sendMsg(message, getResultStr(getRequest(getLastWordWord())), false, buttonList);
+                sendMsg(message, getResultStr(getRequest(getLastWordWord()), false), false, buttonList);
             } else if ("/video".equals(text)) {
-                sendMsg(message, getResultStr(getRequest(getRandomVideo())), false, buttonList);
+                sendMsg(message, getResultStr(getRequest(getRandomVideo()), true), false, buttonList);
             } else if ("/yes".equals(text)) {
                 sendMsg(message, addNewWordResult(message.getFrom().getUserName(), true), false, buttonList);
             } else if ("/no".equals(text)) {
@@ -168,18 +189,10 @@ public class Bot extends TelegramLongPollingBot {
             } else {
                 // если ввели слово (не команда), тогда проверим его наличие в бд и выведем соотв.результат
                 if (getLang(text) == "en") {
-                    sendMsg(message, checkWordInBase(text), true, buttonList);
+                    sendMsg(message, checkWordInBase(text).getResultStr(), true, (checkWordInBase(text).isExist()) ? buttonList : buttonListAdd);
                 }
                 if (getLang(text) == "ru") {
-                    ArrayList<String> answer = getRequest(checkTranslate(text));
-                    if (answer.size() != 0) {
-                        String mystr = "";
-                        for (String str : answer) {
-                            String arr[] = str.split(";");
-                            mystr = mystr + text + " - " + arr[0] + System.lineSeparator();
-                        }
-                        sendMsg(message, mystr, true, buttonList);
-                    }
+                    sendMsg(message, checkTranslateInBase(text), true, buttonList);
                 }
             }
         }
@@ -219,11 +232,11 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public String getBotUsername() {
-        return properties.get("telegramBotUsername");
+        return properties.getProperty("telegramBotUsername");
     }
 
     public String getBotToken() {
-        return properties.get("telegramBotToken");
+        return properties.getProperty("telegramBotToken");
     }
 
     String getLang(String s) {
@@ -241,8 +254,9 @@ public class Bot extends TelegramLongPollingBot {
         ArrayList<String> result = new ArrayList<String>();
         Statement myStmt = null;
         try {
-            if (myCon.isClosed())
-                SetConnection(properties.get("url"), properties.get("username"), properties.get("password"));
+            if (myCon.isClosed()) {
+                setConnection(properties.getProperty("jdbc.url"), properties.getProperty("jdbc.username"), properties.getProperty("jdbc.password"));
+            }
             myStmt = myCon.createStatement();
             ResultSet rs = myStmt.executeQuery(sqlText);
             while (rs.next()) {
@@ -284,12 +298,12 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public static String checkWord(String text) {
-        return "SELECT word, translate1, translate2, translate3, translate4, context from words where word = '" + text + "'";
+        return "SELECT word, translate1, translate2, translate3, translate4, context from words where TRIM(word) = '" + text + "'";
     }
 
     public static String checkTranslate(String text) {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words " +
-                "where translate1 = '" + text + "'" + " OR translate2 = '" + text + "'" + " OR translate3 = '" + text + "'" + " OR translate4 = '" + text + "'";
+                "where TRIM(translate1) = '" + text + "'" + " OR TRIM(translate2) = '" + text + "'" + " OR TRIM(translate3) = '" + text + "'" + " OR TRIM(translate4) = '" + text + "'";
     }
 
     public static String addNewWord(String text, String translate1, String context) {
