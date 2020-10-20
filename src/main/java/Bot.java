@@ -254,7 +254,7 @@ public class Bot extends TelegramLongPollingBot {
         ArrayList<String> result = new ArrayList<String>();
         Statement myStmt = null;
         try {
-            if (myCon.isClosed()) {
+            if (!myCon.isValid(0)) {
                 setConnection(properties.getProperty("jdbc.url"), properties.getProperty("jdbc.username"), properties.getProperty("jdbc.password"));
             }
             myStmt = myCon.createStatement();
