@@ -39,7 +39,7 @@ public class Bot extends TelegramLongPollingBot {
     private static Properties getProperties() {
 
         Properties props = new Properties();
-        try (FileInputStream in = new FileInputStream("C:/java/db.properties")) {
+        try (FileInputStream in = new FileInputStream("src/main/resources/application.properties")) {
             props.load(in);
         } catch (IOException e) {
             e.printStackTrace();
