@@ -73,4 +73,5 @@ fabric.properties
 # zhenianik
 *.csv
 *.iml
-src/main/resources/application.properties
+target/
+.idea/

@@ -1,3 +1,6 @@
+package com.evgen.lazhstudyenglishwords;
+
+import java.io.InputStream;
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -8,12 +11,11 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
 public class Bot extends TelegramLongPollingBot {
 
@@ -25,12 +27,13 @@ public class Bot extends TelegramLongPollingBot {
 
     public static void main(String[] args) {
 
+        System.out.println("Ты пидор.");
         setConnection(properties.getProperty("jdbc.url"), properties.getProperty("jdbc.username"), properties.getProperty("jdbc.password"));
 
         ApiContextInitializer.init();
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
         try {
-            telegramBotsApi.registerBot(new Bot());
+            telegramBotsApi.registerBot(new com.evgen.lazhstudyenglishwords.Bot());
         } catch (TelegramApiRequestException e) {
             e.printStackTrace();
         }
@@ -39,8 +42,8 @@ public class Bot extends TelegramLongPollingBot {
     private static Properties getProperties() {
 
         Properties props = new Properties();
-        try (FileInputStream in = new FileInputStream("src/main/resources/application.properties")) {
-            props.load(in);
+        try (InputStream input = Bot.class.getClassLoader().getResourceAsStream("application.properties")) {
+            props.load(input);
         } catch (IOException e) {
             e.printStackTrace();
         }
