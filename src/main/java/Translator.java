@@ -9,12 +9,6 @@ import java.util.regex.Pattern;
 
 public class Translator {
 
-    public static void main(String[] args) throws Exception {
-
-        translate(null);
-
-    }
-
     private static final String sourceLang = "en";
     private static final String targetLang = "ru";
 

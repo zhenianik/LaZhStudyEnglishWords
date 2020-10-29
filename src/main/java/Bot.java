@@ -99,14 +99,14 @@ public class Bot extends TelegramLongPollingBot {
         if (add) {
             boolean answer = getRequestInsert(addNewWord(currentWord, currentTranslate, username));
             if (answer && !currentWord.equals("") && !currentTranslate.equals("")) {
-                return "Ð¡Ð»Ð¾Ð²Ð¾ ÑƒÑÐ¿ÐµÑˆÐ½Ð¾ Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¾";
+                return "Ñëîâî óñïåøíî äîáàâëåíî";
             } else {
-                return "Ð§Ñ‚Ð¾-Ñ‚Ð¾ Ð¿Ð¾ÑˆÐ»Ð¾ Ð½Ðµ Ñ‚Ð°Ðº, ÑÐ»Ð¾Ð²Ð¾ Ð½Ðµ Ð´Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¾.";
+                return "×òî-òî ïîøëî íå òàê, ñëîâî íå äîáàâëåíî.";
             }
         } else {
             currentWord = "";
             currentTranslate = "";
-            return "Ð¥Ð¾Ñ€Ð¾ÑˆÐ¾, Ð½Ðµ Ð±ÑƒÐ´ÐµÐ¼ Ð´Ð¾Ð±Ð°Ð²Ð»ÑÑ‚ÑŒ.";
+            return "Õîðîøî, íå áóäåì äîáàâëÿòü.";
         }
     }
 
@@ -146,7 +146,7 @@ public class Bot extends TelegramLongPollingBot {
             }
             currentWord = text;
             currentTranslate = translate;
-            return new CheckWordInBaseHold("CÐ»Ð¾Ð²Ð° \"" + text + "\" Ñ Ð¿ÐµÑ€ÐµÐ²Ð¾Ð´Ð¾Ð¼ \"" + translate + "\" Ð½ÐµÑ‚ Ð² ÑÐ»Ð¾Ð²Ð°Ñ€Ðµ! Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ?", false);
+            return new CheckWordInBaseHold("Cëîâà \"" + text + "\" ñ ïåðåâîäîì \"" + translate + "\" íåò â ñëîâàðå! Äîáàâèòü?", false);
         }
     }
 
@@ -187,7 +187,7 @@ public class Bot extends TelegramLongPollingBot {
             } else if ("/no".equals(text)) {
                 sendMsg(message, addNewWordResult(message.getFrom().getUserName(), false), false, buttonList);
             } else {
-                // ÐµÑÐ»Ð¸ Ð²Ð²ÐµÐ»Ð¸ ÑÐ»Ð¾Ð²Ð¾ (Ð½Ðµ ÐºÐ¾Ð¼Ð°Ð½Ð´Ð°), Ñ‚Ð¾Ð³Ð´Ð° Ð¿Ñ€Ð¾Ð²ÐµÑ€Ð¸Ð¼ ÐµÐ³Ð¾ Ð½Ð°Ð»Ð¸Ñ‡Ð¸Ðµ Ð² Ð±Ð´ Ð¸ Ð²Ñ‹Ð²ÐµÐ´ÐµÐ¼ ÑÐ¾Ð¾Ñ‚Ð².Ñ€ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚
+                // åñëè ââåëè ñëîâî (íå êîìàíäà), òîãäà ïðîâåðèì åãî íàëè÷èå â áä è âûâåäåì ñîîòâ.ðåçóëüòàò
                 if (getLang(text) == "en") {
                     sendMsg(message, checkWordInBase(text).getResultStr(), true, (checkWordInBase(text).isExist()) ? buttonList : buttonListAdd);
                 }
@@ -247,7 +247,7 @@ public class Bot extends TelegramLongPollingBot {
         if ((ch >= 0x0410 && ch <= 0x044F) || ch == 0x0401 || ch == 0x0451) {
             return "ru";
         }
-        throw new IllegalArgumentException("ÑÑ‚Ñ€Ð¾ÐºÐ° Ð½Ð°Ñ‡Ð¸Ð½Ð°ÐµÑ‚ÑÑ Ñ ÑÐ¸Ð¼Ð²Ð¾Ð»Ð° Ð½ÐµÐ¸Ð·Ð²ÐµÑÑ‚Ð½Ð¾Ð³Ð¾ ÑÐ·Ñ‹ÐºÐ°");
+        throw new IllegalArgumentException("ñòðîêà íà÷èíàåòñÿ ñ ñèìâîëà íåèçâåñòíîãî ÿçûêà");
     }
 
     public static ArrayList<String> getRequest(String sqlText) {
@@ -312,4 +312,3 @@ public class Bot extends TelegramLongPollingBot {
     }
 
 }
-
