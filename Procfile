@@ -1,1 +1,1 @@
-worker: sh target/bot-1.0-SNAPSHOT.jar
+worker: sh target/lazhstudyenglishwords-1.0-SNAPSHOT.jar
