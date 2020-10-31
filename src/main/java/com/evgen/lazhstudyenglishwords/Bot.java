@@ -27,7 +27,6 @@ public class Bot extends TelegramLongPollingBot {
 
     public static void main(String[] args) {
 
-        System.out.println("Ты пидор.");
         setConnection(properties.getProperty("jdbc.url"), properties.getProperty("jdbc.username"), properties.getProperty("jdbc.password"));
 
         ApiContextInitializer.init();
@@ -42,11 +41,18 @@ public class Bot extends TelegramLongPollingBot {
     private static Properties getProperties() {
 
         Properties props = new Properties();
-        try (InputStream input = Bot.class.getClassLoader().getResourceAsStream("application.properties")) {
-            props.load(input);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try (InputStream input = Bot.class.getClassLoader().getResourceAsStream("application.properties")) {
+//            props.load(input);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+        props.setProperty("jdbc.driver",System.getenv("jdbc_driver"));
+        props.setProperty("jdbc.url",System.getenv("jdbc_url"));
+        props.setProperty("jdbc.username",System.getenv("jdbc_username"));
+        props.setProperty("jdbc.password",System.getenv("jdbc_password"));
+        props.setProperty("telegramBotToken",System.getenv("telegramBotToken"));
+        props.setProperty("telegramBotUsername",System.getenv("telegramBotUsername"));
 
         String driver = props.getProperty("jdbc.driver");
         if (driver != null) {
