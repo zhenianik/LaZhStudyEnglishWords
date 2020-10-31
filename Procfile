@@ -1,1 +1,1 @@
-worker: sh target/lazhstudyenglishwords-1.0-SNAPSHOT.jar
+web: java -jar target/lazhstudyenglishwords-1.0-SNAPSHOT.jar
