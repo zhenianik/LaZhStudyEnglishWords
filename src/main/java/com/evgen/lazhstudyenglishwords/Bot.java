@@ -176,6 +176,7 @@ public class Bot extends TelegramLongPollingBot {
         ArrayList<String> buttonList = new ArrayList<>();
         buttonList.add("/test");
         buttonList.add("/last");
+        buttonList.add("/testLast");
         buttonList.add("/video");
 
         ArrayList<String> buttonListAdd = new ArrayList<>();
@@ -189,6 +190,8 @@ public class Bot extends TelegramLongPollingBot {
                 sendMsg(message, getResultStr(getRequest(getRandomWord()), false), false, buttonList);
             } else if ("/last".equals(text)) {
                 sendMsg(message, getResultStr(getRequest(getLastWordWord()), false), false, buttonList);
+            } else if ("/testLast".equals(text)) {
+                sendMsg(message, getResultStr(getRequest(getRandomWordFromLast()), false), false, buttonList);
             } else if ("/video".equals(text)) {
                 sendMsg(message, getResultStr(getRequest(getRandomVideo()), true), false, buttonList);
             } else if ("/yes".equals(text)) {
@@ -300,6 +303,12 @@ public class Bot extends TelegramLongPollingBot {
 
     public static String getRandomWord() {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words order by RAND() LIMIT 30";
+    }
+
+    public static String getRandomWordFromLast() {
+        return "SELECT word, translate1, translate2, translate3, translate4, context from "+
+                "(SELECT word, translate1, translate2, translate3, translate4, context from words ORDER BY `id_word` DESC LIMIT 100) " +
+                "as table1 order by RAND() LIMIT 30";
     }
 
     public static String getLastWordWord() {
