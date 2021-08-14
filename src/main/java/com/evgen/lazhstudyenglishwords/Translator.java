@@ -26,7 +26,6 @@ public class Translator {
         URLConnection uc = url.openConnection();
         uc.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-
         try (BufferedReader in = new BufferedReader(new InputStreamReader(uc.getInputStream(), "UTF-8"))) {
             String inputLine;
 
@@ -39,7 +38,6 @@ public class Translator {
                     break;
                 }
             }
-
         }
         return result;
     }

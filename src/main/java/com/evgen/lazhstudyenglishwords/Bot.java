@@ -1,6 +1,5 @@
 package com.evgen.lazhstudyenglishwords;
 
-import java.io.InputStream;
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -11,11 +10,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-import java.io.IOException;
-import java.sql.*;
-import java.util.*;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 public class Bot extends TelegramLongPollingBot {
 
@@ -41,18 +41,12 @@ public class Bot extends TelegramLongPollingBot {
     private static Properties getProperties() {
 
         Properties props = new Properties();
-//        try (InputStream input = Bot.class.getClassLoader().getResourceAsStream("application.properties")) {
-//            props.load(input);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-        props.setProperty("jdbc.driver",System.getenv("jdbc_driver"));
-        props.setProperty("jdbc.url",System.getenv("jdbc_url"));
-        props.setProperty("jdbc.username",System.getenv("jdbc_username"));
-        props.setProperty("jdbc.password",System.getenv("jdbc_password"));
-        props.setProperty("telegramBotToken",System.getenv("telegramBotToken"));
-        props.setProperty("telegramBotUsername",System.getenv("telegramBotUsername"));
+        props.setProperty("jdbc.driver", System.getenv("jdbc_driver"));
+        props.setProperty("jdbc.url", System.getenv("jdbc_url"));
+        props.setProperty("jdbc.username", System.getenv("jdbc_username"));
+        props.setProperty("jdbc.password", System.getenv("jdbc_password"));
+        props.setProperty("telegramBotToken", System.getenv("telegramBotToken"));
+        props.setProperty("telegramBotUsername", System.getenv("telegramBotUsername"));
 
         String driver = props.getProperty("jdbc.driver");
         if (driver != null) {
@@ -62,12 +56,10 @@ public class Bot extends TelegramLongPollingBot {
                 e.printStackTrace();
             }
         }
-
         return props;
     }
 
     private static void setConnection(String url, String username, String password) {
-
         try {
             myCon = DriverManager.getConnection(url, username, password);
         } catch (SQLException throwables) {
@@ -171,13 +163,13 @@ public class Bot extends TelegramLongPollingBot {
         return mystr;
     }
 
-
     public void onUpdateReceived(Update update) {
         ArrayList<String> buttonList = new ArrayList<>();
         buttonList.add("/test");
         buttonList.add("/last");
         buttonList.add("/testLast");
         buttonList.add("/video");
+        buttonList.add("/phV");
 
         ArrayList<String> buttonListAdd = new ArrayList<>();
         buttonListAdd.add("/yes");
@@ -194,6 +186,8 @@ public class Bot extends TelegramLongPollingBot {
                 sendMsg(message, getResultStr(getRequest(getRandomWordFromLast()), false), false, buttonList);
             } else if ("/video".equals(text)) {
                 sendMsg(message, getResultStr(getRequest(getRandomVideo()), true), false, buttonList);
+            } else if ("/phV".equals(text)) {
+                sendMsg(message, getResultStr(getRequest(getPhrasalVerbs()), true), false, buttonList);
             } else if ("/yes".equals(text)) {
                 sendMsg(message, addNewWordResult(message.getFrom().getUserName(), true), false, buttonList);
             } else if ("/no".equals(text)) {
@@ -306,7 +300,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public static String getRandomWordFromLast() {
-        return "SELECT word, translate1, translate2, translate3, translate4, context from "+
+        return "SELECT word, translate1, translate2, translate3, translate4, context from " +
                 "(SELECT word, translate1, translate2, translate3, translate4, context from words ORDER BY `id_word` DESC LIMIT 100) " +
                 "as table1 order by RAND() LIMIT 30";
     }
@@ -322,6 +316,23 @@ public class Bot extends TelegramLongPollingBot {
     public static String checkTranslate(String text) {
         return "SELECT word, translate1, translate2, translate3, translate4, context from words " +
                 "where TRIM(translate1) = '" + text + "'" + " OR TRIM(translate2) = '" + text + "'" + " OR TRIM(translate3) = '" + text + "'" + " OR TRIM(translate4) = '" + text + "'";
+    }
+
+    public static String getPhrasalVerbs() {
+        String query = "SELECT word, translate1, translate2, translate3, translate4, context from words where TRIM(word) like '% %'";
+        if (PhrasalVerbsParticles.values().length != 0) {
+            query = query + " AND (";
+            int counter = 0;
+            for (PhrasalVerbsParticles particles : PhrasalVerbsParticles.values()) {
+                if (counter != 0) {
+                    query = query + " OR";
+                }
+                query = query + " TRIM(word) like '%"+particles.name().toLowerCase()+"%'";
+                counter++;
+            }
+            query = query + " )";
+        }
+        return query;
     }
 
     public static String addNewWord(String text, String translate1, String context) {
