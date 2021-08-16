@@ -187,7 +187,7 @@ public class Bot extends TelegramLongPollingBot {
             } else if ("/video".equals(text)) {
                 sendMsg(message, getResultStr(getRequest(getRandomVideo()), true), false, buttonList);
             } else if ("/phV".equals(text)) {
-                sendMsg(message, getResultStr(getRequest(getPhrasalVerbs()), true), false, buttonList);
+                sendMsg(message, getResultStr(getRequest(getPhrasalVerbs()), false), false, buttonList);
             } else if ("/yes".equals(text)) {
                 sendMsg(message, addNewWordResult(message.getFrom().getUserName(), true), false, buttonList);
             } else if ("/no".equals(text)) {
@@ -266,9 +266,10 @@ public class Bot extends TelegramLongPollingBot {
             myStmt = myCon.createStatement();
             ResultSet rs = myStmt.executeQuery(sqlText);
             while (rs.next()) {
-                result.add(rs.getString("word") + ";" + rs.getString("translate1") +
+                String wordAndTranslate = rs.getString("word") + ";" + rs.getString("translate1") +
                         ";" + rs.getString("translate2") + ";" + rs.getString("translate3") +
-                        ";" + rs.getString("translate4") + ";" + rs.getString("context"));
+                        ";" + rs.getString("translate4") + ";" + rs.getString("context");
+                result.add(wordAndTranslate.toLowerCase());
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -327,10 +328,10 @@ public class Bot extends TelegramLongPollingBot {
                 if (counter != 0) {
                     query = query + " OR";
                 }
-                query = query + " TRIM(word) like '%"+particles.name().toLowerCase()+"%'";
+                query = query + " TRIM(word) like '% "+particles.name().toLowerCase()+"%'";
                 counter++;
             }
-            query = query + " )";
+            query = query + " ) order by RAND()";
         }
         return query;
     }
